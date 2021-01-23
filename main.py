@@ -6,12 +6,12 @@ from sklearn import feature_extraction, linear_model, model_selection, preproces
 import nltk
 from nltk.corpus import stopwords
 from nltk.tokenize import TweetTokenizer
-from nltk.tokenize import RegexpTokenizer
-
+import pickle
+from nltk.classify import NaiveBayesClassifier
 
 #Import train and test dataset
-train = pd.DataFrame(pd.read_csv('data/train.csv',sep = ','))
-test = pd.DataFrame(pd.read_csv('data/test.csv',sep = ','))
+train_df = pd.DataFrame(pd.read_csv('data/train.csv',sep = ','))
+
 
 stop_words = stopwords.words('english') #stop words lsit
 tknzr = TweetTokenizer() #tokenizer object
@@ -23,14 +23,41 @@ def remove_stop_words(tweet):
     processed_tweet = ' '.join(processed_tweet)
     return processed_tweet
 
-train['processed_tweet'] = train['text'].apply(lambda x:remove_stop_words(x))
+train_df['processed_tweet'] = train_df['text'].apply(lambda x:remove_stop_words(x))
 
-test = train.loc[0,'processed_tweet']
+
 #Define feature vector containing words excluding stop words and punctuation
 feature_vector = []
 punctuation = ['.',':',"'",'-',';','...',',','/','..','(',')']
 
-for i in range(0,len(train)):
-    feature_vector.extend(list(word for word in tknzr.tokenize(train.loc[i,'processed_tweet']) if word not in punctuation))
-print(feature_vector)
+for i in range(0,len(train_df)):
+    feature_vector.extend(list(word for word in tknzr.tokenize(train_df.loc[i,'processed_tweet']) if word not in punctuation))
+
+print(len(train_df))
+document = train_df.loc[:,['processed_tweet','target']]
+
+#Function to search for the words of the review in the feature_vector
+def find_feature(word_list):
+    feature = {}
+    for x in feature_vector:
+        feature[x] = x in word_list
+
+    return(feature)
+
+document = document.values.tolist()
+
+feature_sets = [(find_feature(word_list),target) for (word_list,target) in document]
+
+train_set,test_set = model_selection.train_test_split(feature_sets,test_size = 0.15)
+model = NaiveBayesClassifier.train(train_set)
+
+accuracy = nltk.classify.accuracy(model, test_set)
+print('SVC Accuracy : {}%'.format(accuracy*100))
+
+
+# save the model to disk
+filename = 'finalized_model.sav'
+pickle.dump(model, open(filename, 'wb'))
+pickle.dump(feature_vector, open("feature_vector.pickle","wb"))
+print('Saved model to disk')
 
