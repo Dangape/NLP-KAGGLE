@@ -6,6 +6,8 @@ from sklearn import feature_extraction, linear_model, model_selection, preproces
 import nltk
 from nltk.corpus import stopwords
 from nltk.tokenize import TweetTokenizer
+from nltk.tokenize import RegexpTokenizer
+
 
 #Import train and test dataset
 train = pd.DataFrame(pd.read_csv('data/train.csv',sep = ','))
@@ -18,9 +20,17 @@ tknzr = TweetTokenizer() #tokenizer object
 def remove_stop_words(tweet):
     tokenized_tweet = tknzr.tokenize(tweet)
     processed_tweet = list(word for word in tokenized_tweet if word not in stop_words)
+    processed_tweet = ' '.join(processed_tweet)
     return processed_tweet
-test_tweet = train.loc[0,'text']
-print(test_tweet)
-print(remove_stop_words(test_tweet))
 
-count_vectorizer = feature_extraction.text.CountVectorizer()
+train['processed_tweet'] = train['text'].apply(lambda x:remove_stop_words(x))
+
+test = train.loc[0,'processed_tweet']
+#Define feature vector containing words excluding stop words and punctuation
+feature_vector = []
+punctuation = ['.',':',"'",'-',';','...',',','/','..','(',')']
+
+for i in range(0,len(train)):
+    feature_vector.extend(list(word for word in tknzr.tokenize(train.loc[i,'processed_tweet']) if word not in punctuation))
+print(feature_vector)
+
