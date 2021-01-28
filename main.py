@@ -10,7 +10,6 @@ import pickle
 from nltk.classify import NaiveBayesClassifier
 from sklearn.pipeline import Pipeline
 from sklearn.feature_extraction.text import TfidfTransformer
-from gensim.models import Word2Vec
 from sklearn.linear_model import SGDClassifier
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 from sklearn.metrics import classification_report
@@ -42,6 +41,7 @@ for i in range(0,len(train_df)):
 
 print(len(train_df))
 document = train_df.loc[:,['processed_tweet','target']]
+document.to_csv('processed_train_data.txt',index=None)
 
 #Function to search for the words of the review in the feature_vector
 def find_feature(word_list):
