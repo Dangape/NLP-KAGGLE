@@ -3,43 +3,28 @@
 from gensim.models import Word2Vec,KeyedVectors
 import pandas as pd
 import numpy as np
-from tensorflow.python.keras.preprocessing.text import Tokenizer
-from tensorflow.python.keras.preprocessing.sequence import pad_sequences
+import gensim
+from itertools import islice
 from sklearn import model_selection
-from keras.models import Sequential
-from keras.layers import Dense,LSTM,GRU,Dropout
-from keras.layers.embeddings import Embedding
-
+import re
+from nltk.tokenize import TweetTokenizer
+from nltk.corpus import stopwords
+import string
 train_df = pd.DataFrame(pd.read_csv('processed_train_data.txt', sep = ','))
+lines = train_df['processed_tweet'].values.tolist()
+
 X = train_df['processed_tweet']
 Y = train_df['target']
-tokenizer = Tokenizer()
-tokenizer.fit_on_texts(X)
-X_train, X_test, y_train, y_test = model_selection.train_test_split(X,Y,test_size = 0.1)
-total_tweets = X_train + X_train
 
-#pad sequences so the vectors have the same lenght
-max_lenght = max([len(s.split()) for s in total_tweets])
+#using a word2vec model pretrained by google
+model = gensim.models.KeyedVectors.load_word2vec_format("GoogleNews-vectors-negative300.bin.gz", binary=True)
+model.init_sims(replace=True)
 
-#define vocabulary size
-vocab_size = len(tokenizer.word_index) + 1
+#Check model
+print(list(islice(model.vocab, 13030, 13050)))
+print(model.wv.most_similar(('horrible')))
 
-X_train_tokens = tokenizer.texts_to_sequences(X_train)
-X_test_tokens = tokenizer.texts_to_sequences(X_test)
-
-X_train_pad = pad_sequences(X_train_tokens,maxlen=max_lenght,padding='post')
-X_test_pad = pad_sequences(X_test_tokens,maxlen=max_lenght,padding='post')
-
-embedding_dim = 100
-
-print('Build model')
-model = Sequential()
-model.add(Embedding(vocab_size,embedding_dim,input_length=max_lenght))
-model.add(GRU(units = 32))
-model.add(Dense(units = 32))
-model.add(Dense(1,activation='sigmoid'))
-
-model.compile(loss='binary_crossentropy',optimizer='adam',metrics=['accuracy'])
-
-print('Training model')
-model.fit(X_train_pad,y_train,batch_size=32,epochs=50,validation_data=(X_test_pad,y_test))
+#Saving model
+filename = 'word2vec_model.txt'
+model.wv.save_word2vec_format(filename,binary=False)
+print('Model saved to disk')
